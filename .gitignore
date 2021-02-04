@@ -1,2 +1,3 @@
 /src/js/config.json
 build/
+/.lock-waf_linux2_build
