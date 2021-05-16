@@ -88,7 +88,7 @@ function extract_duedate( pi_texte ) {
     if( v_date !== null )
         return v_date;
 
-    v_patt = new RegExp( "(demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)" );
+    v_patt = new RegExp( "(aujourd'hui|demain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)" );
     v_date = v_patt.exec( pi_texte );
     if( v_date !== null )
         return v_date;
@@ -116,18 +116,27 @@ function add() {
         // Extract date
         var v_date = extract_duedate( v_str );
         if( v_date !== "" ) {
-    	      v_date = v_date.toString().split( "," )[0];
+    	    v_date = v_date.toString().split( "," )[0];
             v_str  = v_str.replace( v_date, "" );
         }
+
+        if( v_date !== "" || v_time !== "" ) {
+            v_data = JSON.stringify({
+                "content": v_str.toString(),
+                "due_string": v_date.toString() + " " + v_time.toString()
+            });
+        } else {
+            v_data = JSON.stringify({
+                "content": v_str.toString()
+            });
+        }
+
 
         ajax({
 	          url: APIURL + 'tasks',
 	          method: 'post',
 	          type: 'text',
-	          data: JSON.stringify({
-	    	        "content": v_str.toString(),
-	    	        "due_string": v_date.toString() + " " + v_time.toString()
-	          }),
+	          data: v_data, 
 	          headers: {
 	    	        "Content-Type": "application/json",
 	    	        "X-Request-Id": uuidv4(),
