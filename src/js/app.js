@@ -5,8 +5,9 @@ The authentication key (API key) can be found on Todoist website > settings > In
 *****************************************************************************************/
 var config = require( './config.json' );
 
-const APIURL = "https://api.todoist.com/rest/v1/";
-
+const APIURL      = "https://api.todoist.com/rest/v1/";
+const TIMELINEURL = "https://timeline-api.rebble.io/v1/user/pins/";
+ 
 var UI       = require( 'ui' );
 var ajax     = require( 'ajax' );
 var Voice    = require( 'ui/voice' );
@@ -214,6 +215,30 @@ function open( pi_section, pi_index ) {
 	        "Authorization": "Bearer " + config.APIKEY
 	    }},
 	    function( data ) {
+            // Remove on timeline
+            if( config.TIMELINE_TOKEN != "" ) {
+                var today = new Date();
+                var id    = "todoist-" + today.getFullYear();
+               
+                if( today.getMonth() + 1 < 10 )
+                    id += "0";
+                id += today.getMonth() + 1;
+
+                if( today.getDay() < 10 )
+                    id += "0";
+                id += today.getDate(); 
+                id += "-" + v_task.id;
+
+                ajax({
+                    url: TIMELINEURL + id,
+                    method: 'delete',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-User-Token": config.TIMELINE_TOKEN
+                    }     
+                });
+            }
+
 	        refresh();
 	        v_current.hide();
 	    }

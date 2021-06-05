@@ -1,3 +1,4 @@
 {
-  "APIKEY": "Your API KEY here"
+  "APIKEY": "Your API KEY here",
+  "TIMELINE_TOKEN": "Your timeline's token here (optional), if you synchronize task with in"
 }
