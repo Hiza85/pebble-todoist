@@ -7,7 +7,7 @@ var config = require( './config.json' );
 
 const APIURL      = "https://api.todoist.com/rest/v1/";
 const TIMELINEURL = "https://timeline-api.rebble.io/v1/user/pins/";
- 
+
 var UI       = require( 'ui' );
 var ajax     = require( 'ajax' );
 var Voice    = require( 'ui/voice' );
@@ -137,7 +137,7 @@ function add() {
 	          url: APIURL + 'tasks',
 	          method: 'post',
 	          type: 'text',
-	          data: v_data, 
+	          data: v_data,
 	          headers: {
 	    	        "Content-Type": "application/json",
 	    	        "X-Request-Id": uuidv4(),
@@ -219,14 +219,14 @@ function open( pi_section, pi_index ) {
             if( config.TIMELINE_TOKEN != "" ) {
                 var today = new Date();
                 var id    = "todoist-" + today.getFullYear();
-               
+
                 if( today.getMonth() + 1 < 10 )
                     id += "0";
                 id += today.getMonth() + 1;
 
                 if( today.getDay() < 10 )
                     id += "0";
-                id += today.getDate(); 
+                id += today.getDate();
                 id += "-" + v_task.id;
 
                 ajax({
@@ -235,7 +235,7 @@ function open( pi_section, pi_index ) {
                     headers: {
                         "Content-Type": "application/json",
                         "X-User-Token": config.TIMELINE_TOKEN
-                    }     
+                    }
                 });
             }
 
@@ -251,6 +251,22 @@ function open( pi_section, pi_index ) {
 // Sort today's task by due time
 function custom_sort(a, b) {
     return new Date(a.due.orderdate).getTime() - new Date(b.due.orderdate).getTime();
+}
+
+function getPriority( p ) {
+  switch (p) {
+    case 4:
+      return "IMAGE_P1";
+      break;
+    case 3:
+      return "IMAGE_P2";
+      break;
+    case 2:
+      return "IMAGE_P3";
+      break;
+    default:
+      return "IMAGE_P4";
+  }
 }
 
 function refresh() {
@@ -276,7 +292,7 @@ function refresh() {
             if( v_lst_od.length > 0 ) {
                 var v_items = [];
                 for( var i = 0; i < v_lst_od.length; i++ ) {
-                    v_items.push( { title: v_lst_od[i].content });
+                    v_items.push( { title: v_lst_od[i].content, icon: getPriority(v_lst_od[i].priority ) });
                 }
 
                 var v_section = {
@@ -315,9 +331,9 @@ function refresh() {
                     if( v_lst_to[i].due.hasOwnProperty( 'datetime' ) ) {
                         var v_date = new Date(v_lst_to[i].due.datetime);
 
-                        v_items.push( { title: v_lst_to[i].content, subtitle: addZero( v_date.getHours() ) + ":" + addZero( v_date.getMinutes() ) });
+                        v_items.push( { title: v_lst_to[i].content, subtitle: addZero( v_date.getHours() ) + ":" + addZero( v_date.getMinutes() ), icon: getPriority( v_lst_to[i].priority ) });
                     } else
-                        v_items.push( { title: v_lst_to[i].content });
+                          v_items.push( { title: v_lst_to[i].content, icon: getPriority( v_lst_to[i].priority ) });
                 }
 
                 var v_section = {

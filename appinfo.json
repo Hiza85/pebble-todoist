@@ -34,6 +34,30 @@
         "file": "fonts/UbuntuMono-Regular.ttf",
         "name": "MONO_FONT_14",
         "type": "font"
+      },
+      {
+        "file": "images/P1.png",
+        "menuIcon": false,
+        "name": "IMAGE_P1",
+        "type": "png"
+      },
+      {
+        "file": "images/P2.png",
+        "menuIcon": false,
+        "name": "IMAGE_P2",
+        "type": "png"
+      },
+      {
+        "file": "images/P3.png",
+        "menuIcon": false,
+        "name": "IMAGE_P3",
+        "type": "png"
+      },
+      {
+        "file": "images/P4.png",
+        "menuIcon": false,
+        "name": "IMAGE_P4",
+        "type": "png"
       }
     ]
   },
