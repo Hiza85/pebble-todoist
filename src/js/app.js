@@ -5,7 +5,7 @@ The authentication key (API key) can be found on Todoist website > settings > In
 *****************************************************************************************/
 var config = require( './config.json' );
 
-const APIURL      = "https://api.todoist.com/rest/v1/";
+const APIURL      = "https://api.todoist.com/rest/v2/";
 const TIMELINEURL = "https://timeline-api.rebble.io/v1/user/pins/";
 
 var UI       = require( 'ui' );
@@ -132,7 +132,6 @@ function add() {
             });
         }
 
-
         ajax({
 	          url: APIURL + 'tasks',
 	          method: 'post',
@@ -163,7 +162,7 @@ function open( pi_section, pi_index ) {
     if( pi_section == 1 && v_lst_od.length > 0 )
         v_task = v_lst_od[pi_index];
     else
-	      v_task = v_lst_to[pi_index];
+	    v_task = v_lst_to[pi_index];
 
     var v_subt = "";
     if( v_task.due.hasOwnProperty( 'datetime' ) ) {
@@ -269,6 +268,29 @@ function getPriority( p ) {
   }
 }
 
+function getColorPriority( p ) {
+    switch( p ) {
+        case 4:
+            return '#FF0000';
+            break;
+        case 3:
+            return '#DF7401';
+            break;
+        case 2:
+            return '#01A9DB';
+            break;
+        defaut:
+            return '#ffffff';
+    }
+}
+
+function getHeaderTitle( p ) {
+    if( p > 1 )
+        return 'Priorité ' + p;
+
+    return 'Aucune priorité';
+}
+
 function refresh() {
 
     // Add task
@@ -292,7 +314,7 @@ function refresh() {
             if( v_lst_od.length > 0 ) {
                 var v_items = [];
                 for( var i = 0; i < v_lst_od.length; i++ ) {
-                    v_items.push( { title: v_lst_od[i].content, icon: getPriority(v_lst_od[i].priority ) });
+                    v_items.push( { title: v_lst_od[i].content });
                 }
 
                 var v_section = {
@@ -300,10 +322,10 @@ function refresh() {
                     backgroundColor: 'red',
                     items: v_items
                 };
-            }
 
-            v_menu.section(1, v_section);
-            v_menu.selection(1, 0);     // Query async, select first item of this section
+                v_menu.section(1, v_section);
+                v_menu.selection(1, 0);     // Query async, select first item of this section
+            }
         }
     );
 
@@ -325,15 +347,41 @@ function refresh() {
             }
             v_lst_to.sort(custom_sort);
 
+            /* Test de section par priorité
+            if( v_lst_to.length > 0 ) {
+                var v_section = {
+                    title: 'Aujourd\'hui: ' + v_lst_to.length,
+                    backgroundColor: '#37a611',
+                };
+
+                v_menu.section( v_pos, v_section );
+                v_pos++;
+
+                for( let v_priority = 4; v_priority > 0; v_priority-- ) {
+                    var v_items = [];
+                    for( var i = 0; i < v_lst_to.length; i++ ) {
+                        if( v_lst_to[i].priority == v_priority )
+                            v_items.push( { title: v_lst_to[i].content });
+                    }
+
+                    if( v_items.length > 0 ) {
+                        var v_section = {
+                            title: getHeaderTitle( v_priority ),
+                            textColor: getColorPriority( v_priority ),
+                            items: v_items
+                        };
+
+                        v_menu.section(v_pos, v_section );
+                        v_pos++;
+                    }
+                }
+            }
+            */
+
             if( v_lst_to.length > 0 ) {
                 var v_items = [];
                 for( var i = 0; i < v_lst_to.length; i++ ) {
-                    if( v_lst_to[i].due.hasOwnProperty( 'datetime' ) ) {
-                        var v_date = new Date(v_lst_to[i].due.datetime);
-
-                        v_items.push( { title: v_lst_to[i].content, subtitle: addZero( v_date.getHours() ) + ":" + addZero( v_date.getMinutes() ), icon: getPriority( v_lst_to[i].priority ) });
-                    } else
-                          v_items.push( { title: v_lst_to[i].content, icon: getPriority( v_lst_to[i].priority ) });
+                    v_items.push( { title: v_lst_to[i].content });
                 }
 
                 var v_section = {
@@ -341,9 +389,11 @@ function refresh() {
                     backgroundColor: '#37a611',
                     items: v_items
                 };
+
+                v_menu.section(2, v_section);
+                v_menu.selection(2, 0);     // Query async, select first item of this section
             }
 
-            v_menu.section(2, v_section);
         }
     );
 }
