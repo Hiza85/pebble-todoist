@@ -5,7 +5,7 @@ The authentication key (API key) can be found on Todoist website > settings > In
 *****************************************************************************************/
 var config = require('./config.json');
 
-const APIURL = "https://api.todoist.com/rest/v2/";
+const APIURL = "https://api.todoist.com/api/v1/";
 const TIMELINEURL = "https://timeline-api.rebble.io/v1/user/pins/";
 
 var UI = require('ui');
@@ -13,12 +13,45 @@ var ajax = require('ajax');
 var Voice = require('ui/voice');
 var v_lst_od = []; // List of overdue's tasks
 var v_lst_to = []; // List of today's tasks
+var v_projects = {};
+
+var COLOR_MAP = {
+    "berry_red": "red",
+    "red": "red",
+    "orange": "yellow",
+    "yellow": "yellow",
+    "olive_green": "green",
+    "lime_green": "green",
+    "green": "green",
+    "mint_green": "cyan",
+    "teal": "cyan",
+    "sky_blue": "blue",
+    "light_blue": "blue",
+    "blue": "blue",
+    "grape": "magenta",
+    "violet": "magenta",
+    "lavender": "magenta",
+    "magenta": "magenta",
+    "salmon": "red",
+    "charcoal": "black",
+    "grey": "black",
+    "taupe": "black"
+};
+
 
 var v_menu = new UI.Menu({
     backgroundColor: 'black',
     textColor: 'white',
     highlightBackgroundColor: '#c5cacf',
     highlightTextColor: 'black'
+});
+
+// Section 0 : ajout par dictée
+v_menu.section(0, {
+    title: 'Todoist',
+    items: [
+        { title: '+ Ajouter' }
+    ]
 });
 
 v_menu.on('select', function (e) {
@@ -41,6 +74,29 @@ function show_error(message) {
     errorCard.show();
 }
 
+async function loadProjects() {
+    const resp = await ajaxPromise({
+        url: `${APIURL}projects`,
+        headers: { "Authorization": `Bearer ${config.APIKEY}` }
+    });
+
+    const json = JSON.parse(resp);
+    const list = json.results || json; // suivant la forme de ta réponse
+
+    v_projects = {};
+    list.forEach(function (p) {
+
+        // Convertir la couleur Todoist → PebbleJS
+        let pebbleColor = COLOR_MAP[p.color] || "black";
+
+        v_projects[p.id] = {
+            name: p.name,
+            color: pebbleColor
+        };
+    });
+}
+
+
 async function refresh() {
     // Clear existing sections
     v_menu.section(1, { items: [] }); // Overdue tasks
@@ -49,16 +105,21 @@ async function refresh() {
     try {
         // Fetch overdue tasks
         const overdueResponse = await ajaxPromise({
-            url: `${APIURL}tasks?filter=overdue`,
+            url: `${APIURL}tasks/filter?query=overdue&lang=fr`,
             headers: { "Authorization": `Bearer ${config.APIKEY}` }
         });
-        v_lst_od = JSON.parse(overdueResponse);
+        const overdueJson = JSON.parse(overdueResponse);
+        v_lst_od = overdueJson.results || [];
+
         const overdueItems = v_lst_od.map(task => ({ title: task.content }));
-        v_menu.section(1, {
-            title: `En retard: ${v_lst_od.length}`,
-            backgroundColor: 'red',
-            items: overdueItems
-        });
+
+        if(v_lst_od.length > 0) {
+            v_menu.section(1, {
+                title: `En retard: ${v_lst_od.length}`,
+                backgroundColor: 'red',
+                items: overdueItems
+            });
+        }
     } catch (error) {
         show_error('Erreur lors du chargement des tâches en retard.');
     }
@@ -66,10 +127,11 @@ async function refresh() {
     try {
         // Fetch today's tasks
         const todayResponse = await ajaxPromise({
-            url: `${APIURL}tasks?filter=today`,
+            url: `${APIURL}tasks/filter?query=today&lang=fr`,
             headers: { "Authorization": `Bearer ${config.APIKEY}` }
         });
-        v_lst_to = JSON.parse(todayResponse);
+        const todayJson = JSON.parse(todayResponse);
+        v_lst_to = todayJson.results || [];
 
         // Add custom sort field for tasks
         v_lst_to.forEach(task => {
@@ -81,11 +143,13 @@ async function refresh() {
         v_lst_to.sort((a, b) => new Date(a.due.orderdate) - new Date(b.due.orderdate));
         const todayItems = v_lst_to.map(task => ({ title: task.content }));
 
-        v_menu.section(2, {
-            title: `Aujourd'hui: ${v_lst_to.length}`,
-            backgroundColor: '#37a611',
-            items: todayItems
-        });
+        if (v_lst_to.length > 0) {
+            v_menu.section(2, {
+                title: `Aujourd'hui: ${v_lst_to.length}`,
+                backgroundColor: '#37a611',
+                items: todayItems
+            });
+        }
     } catch (error) {
         show_error('Erreur lors du chargement des tâches du jour.');
     }
@@ -98,9 +162,23 @@ async function open(sectionIndex, itemIndex) {
     }
 
     const selectedTask = sectionIndex === 1 ? v_lst_od[itemIndex] : v_lst_to[itemIndex];
+    let proj = v_projects[selectedTask.project_id];
+
+    if(!proj) {
+        proj = {
+            name: "",
+            color: "white"
+        };
+    }
+
+    if(proj.color == "black") {
+        proj.color = "white";
+    }
 
     const currentCard = new UI.Card({
-        title: selectedTask.content,
+        title: proj.name,
+        subtitle: selectedTask.content,
+        backgroundColor: proj.color,
         scrollable: true
     });
 
@@ -148,13 +226,14 @@ async function add() {
 
         try {
             await ajaxPromise({
-                url: `${APIURL}tasks`,
+                url: `${APIURL}tasks/quick`,
                 method: 'post',
                 type: 'text',
-                data: JSON.stringify(requestData),
+                data: JSON.stringify({
+                    text: transcription
+                }),
                 headers: {
                     "Content-Type": "application/json",
-                    "X-Request-Id": uuidv4(),
                     "Authorization": `Bearer ${config.APIKEY}`
                 }
             });
@@ -165,7 +244,7 @@ async function add() {
     });
 }
 
-function init() {
+async function init() {
     const splashScreen = new UI.Card({
         title: 'Todoist',
         banner: 'IMAGE_MENU_ICON',
@@ -173,12 +252,16 @@ function init() {
     });
     splashScreen.show();
 
-    refresh().then(() => {
-        setTimeout(() => {
-            v_menu.show();
-            splashScreen.hide();
-        }, 400);
-    });
+    // Chargement des projets
+    await loadProjects();
+
+    // Charger les tâches
+    await refresh();
+
+    setTimeout(() => {
+        v_menu.show();
+        splashScreen.hide();
+    }, 400);
 }
 
 // Generate uuidv4 for X-Request-Id
